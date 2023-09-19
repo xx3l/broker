@@ -1,0 +1,18 @@
+html
+    head
+        style.
+            * { background: #333; color: #ccc; font-family: monospace; margin: 0 0 0 0; }
+            div.h { font-size: 300%; text-align: center; }
+            div.caption { border: 1px solid #ccc; font-size: 150%; text-align: center; margin: 10 10%; padding: 10; background: #678; }
+            div.item { margin: 0 10%; padding: 10 10%; }
+            div.item:hover { background: #111; cursor: default; }
+            footer { background: #555; position: absolute; bottom: 0; right:0; left:0; padding: 10; text-align: right; }
+    body
+        .h Broker is OK
+        div.caption Queues
+        each v,k in broker.queue
+            div.item= `Queue FIFO "${k}" (len = ${v.length}, max_age = ${v.getDelayMax()}ms)`
+        div.caption Caches
+        each v,k in broker.cache
+            div.item= `Cache "${k}" (len = ${v.size}, max_age = ${v.purgeTimeout}ms)`
+        footer= `v${broker.version} (2023)`
