@@ -6,56 +6,95 @@ const fs = require('fs');
 
 class BrokerClass {
     #httpServer;
+    #queues;
+    config = {};
+
     constructor() {
-        console.log('Broker started...');
+        this.configure({
+            dumpFile: './state/dump.json',
+            debug: 1,
+        })
+        this.setDebugHandler();
         this.#httpServer = false;
         this.version = require('./package.json').version;
+        this.debug(1, `[Info] Broker ${this.version} started`);
         this.clear();
-        let data = { queues: {}, caches: {}}
+        let data = {queues: {}, caches: {}}
         try {
-            data = JSON.parse(fs.readFileSync('./state/dump.json', { encoding: 'utf8', flag: 'r' }));
+            data = JSON.parse(fs.readFileSync(this.config.dumpFile, {encoding: 'utf8', flag: 'r'}));
+            this.debug(2, `[Event] dump ${this.config.dumpFile} parsed for state restoring`);
         } catch (e) {
-            data = { queues: {}, caches: {}}
+            data = {queues: {}, caches: {}}
+            this.debug(1, `[Warn] dump can't be used for restoring`);
+            return;
         }
         for (const queue of Object.keys(data.queues || {})) {
             this.createQueue(queue)
             this.queue[queue].messages = data.queues[queue].messages
             this.queue[queue].broker = this;
-            console.log(`Queue "${queue}" loaded:`, data.queues[queue])
+            this.debug(2, `[Event] Queue ${queue} loaded with ${queue.length} elements`);
         }
         for (const cache of Object.keys(data.caches || {})) {
-            this.createCache(cache)
-            this.cache[cache].data = data.cache[cache].data
+            this.createCache(cache, 0)
+            this.cache[cache].data = data.caches[cache].data
             this.cache[cache].broker = this;
-            console.log(`Cache "${queue}" loaded:`, data.queues[queue])
+            this.debug(2, `[Event] Cache ${cache} loaded with ${cache.size} elements`);
         }
-        console.log('State restored');
+        this.debug(1, 'broker state restored');
     }
+
+    configure(config = {}) {
+        Object.keys(config).map(key => {
+            this.config[key] = config[key]
+        });
+        return this;
+    }
+
+    debug(level, ...data) {
+        if (this.config.debug >= level) {
+            this.debugHandler(...data);
+        }
+    }
+
+    setDebugHandler(handler = (...messages) => console.log(...messages)) {
+        this.debugHandler = handler;
+    }
+
+    setDebugLevel(level) {
+        this.config.debug = level;
+        return this;
+    }
+
     clear() {
         this.queue = {};
-        this.queues = [];
+        this.#queues = [];
         this.cache = {};
         this.caches = [];
     }
-    configureHTTP(config = { port: 3000 }) {
+
+    configureHTTP(config = {port: 3000}) {
         if (!this.#httpServer) {
             this.httpServerPort = config?.port || 3000;
             this.#httpServer = express();
-            this.#httpServer.set("view engine", config.engine || "pug")
-            this.#httpServer.set('views', './webroot')
-            this.#httpServer.use(httpBodyParser.urlencoded({ extended: true }));
+            this.#httpServer
+                .set("view engine", config.engine || "pug")
+                .set('views', './webroot')
+            this.#httpServer.use(httpBodyParser.urlencoded({extended: true}));
             this.#httpServer.use(httpBodyParser.json());
             this.#httpServer.use(httpBodyParser.raw());
 
             this.#httpServer.get('/', (req, res) => {
-                res.render('index', { broker: this });
+                res.render('index', {broker: this});
             });
         }
+        return this;
     }
+
     startHttp(mode = 'dev') {
         const signals = [`SIGINT`, `SIGUSR1`, `SIGUSR2`, `SIGTERM`];
-        if (mode != 'dev')
+        if (mode != 'dev') {
             signals.push('uncaughtException');
+        }
         signals.forEach(event => {
             process.on(event, () => {
                 Broker.sync()
@@ -65,10 +104,12 @@ class BrokerClass {
         this.start();
         this.#httpServer.listen(this.httpServerPort)
     }
+
     start() {
-        this.queues.forEach((queue) => queue.start());
+        this.#queues.forEach((queue) => queue.start());
         return this;
     }
+
     createQueue(name) {
         if (this.queue[name]) {
             return this.queue[name];
@@ -88,6 +129,7 @@ class BrokerClass {
                 this.busy = false;
                 this.debug = true;
             }
+
             write(message, params = {}) {
                 const msg = {
                     priority: params.priority || 0,
@@ -99,15 +141,18 @@ class BrokerClass {
                 this.length = this.messages.length;
                 return msg;
             }
+
             read() {
                 const message = this.messages.shift();
                 this.length = this.messages.length;
                 return message;
             }
+
             attachInputWeb(route, prePushAction, responseAction, tickInterval = 1000) {
                 this.allowTicks = true;
                 this.inputAttached = true;
-                this.setHandler(() => {}, tickInterval)
+                this.setHandler(() => {
+                }, tickInterval)
                 this.broker.#httpServer.all(route, (req, res) => {
                     if (!prePushAction) {
                         prePushAction = (req) => {
@@ -118,27 +163,32 @@ class BrokerClass {
                             }
                         }
                     }
-                    const msg = this.write(prePushAction(req, this));
-                    msg.state = 'processed';
+                    const value = prePushAction(req, this);
+                    if (value) {
+                        const msg = this.write(value);
+                        msg.state = 'processed';
+                    }
                     res.send(responseAction(req, this));
                 });
                 return this;
             }
+
             attachInput(queue) {
                 this.in = queue;
                 queue.out = this;
                 this.inputAttached = true;
                 return this;
             }
+
             async tick() {
                 if (!this.alive) return;
                 if (this.busy) return;
                 this.busy = true;
                 if (this.handlerAttached) {
-                    if (this.debug) console.log(`ticked on ${this.name}`);
+                    this.broker.debug(3, `[Event] tick handling on Queue::${this.name} {len:${this.length}}`);
                     await this.messages.map(async (message) => {
                         if (message.state != 'processed') {
-                            if (this.debug) console.log('processing', message);
+                            this.broker.debug(3, `[Event] tick handling message Queue::${this.name}->message(${JSON.stringify(message)})`);
                             this.handler(message, this);
                             message.state = 'processed';
                         }
@@ -146,37 +196,42 @@ class BrokerClass {
                 }
                 const lastMsg = this.read();
                 if (this.out && lastMsg) {
-                    if (this.debug) console.log("transfering", lastMsg);
+                    this.broker.debug(3, `[Event] Queue::${this.name} -> Queue::${this.out.name}`, lastMsg);
                     this.out.write(lastMsg.data);
                 }
                 this.busy = false;
             }
+
             start() {
-                console.log("q started");
+                this.broker.debug(2, `[Event] Queue::${this.name} started`);
                 this.alive = true;
                 this.tickPointer = setInterval(this.tick, this.tickInterval);
             }
+
             stop() {
                 this.alive = false;
                 clearInterval(this.tickPointer);
             }
+
             setHandler(handler, tickInterval = 1000) {
                 this.tickInterval = tickInterval;
                 this.handlerAttached = true;
                 this.handler = handler;
             }
+
             getDelayMax() {
                 const now = Date.now();
-                const oldest = this.messages.reduce((a,b) => b.created < a ? b.created: a, now)
+                const oldest = this.messages.reduce((a, b) => b.created < a ? b.created : a, now)
                 return now - oldest;
             }
         }
         newQueue.broker = this;
         newQueue.name = name;
         this.queue[name] = newQueue;
-        this.queues.push(newQueue);
+        this.#queues.push(newQueue);
         return newQueue;
     }
+
     createCache(name, purgeTimeout = 3600000) {
         if (this.cache[name]) {
             return this.cache[name];
@@ -192,37 +247,47 @@ class BrokerClass {
                 this.tickPointer = null;
                 this.debug = true;
             }
+
             write(key, data) {
                 const item = {
                     created: Date.now(),
-                    data: {...data}
                 }
-                this.data[key] = item;
+                if (typeof data == 'object') {
+                    item.data = {...data};
+                } else {
+                    item.data = data;
+                }
+
+                this.data[key] = {...item};
                 this.size = Object.keys(this.data).length;
                 return item;
             }
+
             read(key) {
                 return this.data[key]?.data;
             }
+
             async tick() {
                 if (!this.alive) return;
                 if (this.busy) return;
                 this.busy = true;
+                this.broker.debug(3, `[Event] Cache::${this.name} tick`)
                 Object.keys(this.data).map((key) => {
                     const now = Date.now();
                     if (now - this.data[key].created > this.purgeTimeout) {
-                        if (this.debug) console.log("cache key deleted", key,  this.data[key])
+                        this.broker.debug(3, `[Event] Cache::${this.name}->${key} deleted (${this.data[key]})`);
                         delete this.data[key];
                         this.size = Object.keys(this.data).length;
                     }
                 })
-                console.log(`cache ${this.name} purged`)
                 this.busy = false;
             }
+
             start() {
                 this.alive = true;
                 this.tickPointer = setInterval(this.tick, this.purgeTimeout);
             }
+
             stop() {
                 this.alive = false;
                 clearInterval(this.tickPointer);
@@ -231,21 +296,35 @@ class BrokerClass {
         newCache.broker = this;
         newCache.purgeTimeout = purgeTimeout;
         newCache.name = name;
-        newCache.start();
         this.cache[name] = newCache;
         this.caches.push(newCache);
+        if (purgeTimeout != 0) {
+            newCache.start();
+        }
         return newCache;
     }
-    sync(dumpFile = "./state/dump.json") {
-        console.log('Shutting down');
-        fs.writeFileSync(dumpFile, JSON.stringify({
-            queues: Object.keys(Broker.queue).reduce((result, el) => {
-                result[el] = { messages: Broker.queue[el].messages }
-                return result;
-            }, {})
-        }));
+
+    sync(dumpFile = this.config.dumpFile) {
+        this.debug(1, `[Mesg] Shutting down`);
+        try {
+            fs.writeFileSync(dumpFile, JSON.stringify({
+                queues: Object.keys(Broker.queue).reduce((result, el) => {
+                    result[el] = {messages: Broker.queue[el].messages}
+                    return result;
+                }, {}),
+                caches: Object.keys(Broker.cache).reduce((result, el) => {
+                    result[el] = {data: Broker.cache[el].data}
+                    return result;
+                }, {}),
+            }));
+            this.debug(2, `[Event] state dump ${this.config.dumpFile} saved`);
+
+        } catch (e) {
+            this.debug(1, `[Warn] state dump ${this.config.dumpFile} not saved`);
+        }
     }
 }
+
 const Broker = new BrokerClass();
 
 module.exports = Broker

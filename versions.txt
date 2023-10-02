@@ -1,0 +1,8 @@
+- version 1.0.0 (??)
+    - first public release
+    - Queue implementation
+    - Cache implementation
+    - Queue.attachInputWeb entrypoints implementation
+    - examples set included
+- version 1.0.1 (2023-10-02)
+    - improved logging & debug levels for engine

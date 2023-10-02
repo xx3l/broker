@@ -1,7 +1,8 @@
 const broker = require('../broker');
 
-broker.configureHTTP({ port: 8080 });
-//broker.clear(); // forget preious restored state (or not)
+broker.configureHTTP({ port: 8080 }).setDebugLevel(3);
+
+broker.clear(); // forget preious restored state (or not)
 const webHookQueue = broker.createQueue("input");
 console.log("queue created",broker.queues);
 

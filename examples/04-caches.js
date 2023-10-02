@@ -1,6 +1,6 @@
 const broker = require('../broker');
 
-broker.configureHTTP({ port: 8080 });
+broker.configureHTTP({ port: 8080 }).setDebugLevel(3);
 const webHookQueue = broker.createQueue("input");
 console.log("queue created",broker.queues);
 
