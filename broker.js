@@ -168,7 +168,12 @@ class BrokerClass {
                         const msg = this.write(value);
                         msg.state = 'processed';
                     }
-                    res.send(responseAction(req, this));
+                    if (responseAction.constructor.name === "AsyncFunction") {
+                        responseAction(req, this).then(result => res.send(result));
+                    } else {
+                        res.send(responseAction(req, this));
+                    }
+
                 });
                 return this;
             }
