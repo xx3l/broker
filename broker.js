@@ -148,7 +148,7 @@ class BrokerClass {
                 return message;
             }
 
-            attachInputWeb(route, prePushAction, responseAction, tickInterval = 1000) {
+            attachInputWeb(route, prePushAction, responseAction, tickInterval = 1000, async = false) {
                 this.allowTicks = true;
                 this.inputAttached = true;
                 this.setHandler(() => {
@@ -171,7 +171,12 @@ class BrokerClass {
                     if (responseAction.constructor.name === "AsyncFunction") {
                         responseAction(req, this).then(result => res.send(result));
                     } else {
-                        res.send(responseAction(req, this));
+                        if (async) {
+                            responseAction(req, this, res)
+                        }
+                        else {
+                            res.send(responseAction(req, this));
+                        }
                     }
 
                 });
