@@ -15,7 +15,7 @@ broker.createQueue('increment', 1)
 broker.createQueue('decrement', 1)
     .attachInputWeb('/api/dec', () => false, () => {
         counter.write('value', counter.read('value') - 1)
-        return {current: counter.read('value')}
+        return { current: counter.read('value') }
     });
 console.log(broker);
 broker.startHttp();

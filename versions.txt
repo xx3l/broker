@@ -8,3 +8,8 @@
     - improved logging & debug levels for engine
 - version 1.0.2 (2023-10-02)
     - Async/sync responseAction support fix
+- version 1.0.3 (2023-10-10)
+    - Add cookie handler
+    - Add cookies to default prePushAction for Queue::attachInputWeb
+    - Add on-board HTTPS server support - broker.configureHTTPS()
+    - default URL for broker's WebUI moved to http[s]:/host/broker

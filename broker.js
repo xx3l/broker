@@ -3,9 +3,12 @@
 const express = require('express');
 const httpBodyParser = require('body-parser');
 const fs = require('fs');
+const https = require('https');
+const cookieParser = require('cookie-parser');
 
 class BrokerClass {
     #httpServer;
+    #httpsServer;
     #queues;
     config = {};
 
@@ -16,6 +19,7 @@ class BrokerClass {
         })
         this.setDebugHandler();
         this.#httpServer = false;
+        this.#httpsServer = false;
         this.version = require('./package.json').version;
         this.debug(1, `[Info] Broker ${this.version} started`);
         this.clear();
@@ -72,20 +76,33 @@ class BrokerClass {
         this.caches = [];
     }
 
-    configureHTTP(config = {port: 3000}) {
+    configureHTTP(config = { port: 3000 }) {
         if (!this.#httpServer) {
             this.httpServerPort = config?.port || 3000;
             this.#httpServer = express();
             this.#httpServer
                 .set("view engine", config.engine || "pug")
-                .set('views', './webroot')
+                .set('views', 'webroot')
             this.#httpServer.use(httpBodyParser.urlencoded({extended: true}));
             this.#httpServer.use(httpBodyParser.json());
             this.#httpServer.use(httpBodyParser.raw());
+            this.#httpServer.use(cookieParser());
 
-            this.#httpServer.get('/', (req, res) => {
+
+            this.#httpServer.get('/broker', (req, res) => {
                 res.render('index', {broker: this});
             });
+        }
+        return this;
+    }
+    configureHTTPS(config = { port: 3001, credentials: {}}) {
+        const credentials = {
+            cert: config.credentials.cert || fs.readFileSync(config.credentials.certFile),
+            key: config.credentials.key  || fs.readFileSync(config.credentials.keyFile)
+        }
+        if (!this.#httpsServer) {
+            this.httpsServerPort = config?.port || 3001;
+            this.#httpsServer = https.createServer(credentials, this.#httpServer);
         }
         return this;
     }
@@ -102,7 +119,14 @@ class BrokerClass {
             });
         })
         this.start();
-        this.#httpServer.listen(this.httpServerPort)
+        if (this.#httpsServer) {
+            this.debug(1, `[Info] HTTPS started at ::${this.httpsServerPort}`);
+            this.#httpsServer.listen(this.httpsServerPort);
+        }
+        else {
+            this.debug(1, `[Info] HTTP started at ::${this.httpServerPort}`);
+            this.#httpServer.listen(this.httpServerPort);
+        }
     }
 
     start() {
@@ -160,6 +184,7 @@ class BrokerClass {
                                 url: req.url,
                                 query: req.query,
                                 body: req.body,
+                                cookies: req.cookies,
                             }
                         }
                     }

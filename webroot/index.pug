@@ -14,5 +14,5 @@ html
             div.item= `Queue FIFO "${k}" (len = ${v.length}, max_age = ${v.getDelayMax()}ms)`
         div.caption Caches
         each v,k in broker.cache
-            div.item= `Cache "${k}" (len = ${v.size}, max_age = ${v.purgeTimeout}ms)`
+            div.item= `Cache "${k}" (len = ${v.size}, timeout = ${v.purgeTimeout}ms)`
         footer= `v${broker.version} (2023)`

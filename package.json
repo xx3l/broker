@@ -1,12 +1,13 @@
 {
   "name": "broker",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Queue-based framework and app-layer integration proxy transport",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
-    "broker.js"
+    "broker.js",
+    "webroot/index.pug"
   ],
   "main": "broker.js",
   "repository": "xx3l/broker",
@@ -14,6 +15,7 @@
   "author": "",
   "license": "Apachen 2.0",
   "dependencies": {
+    "cookie-parser": "^1.4.6",
     "express": "^4.18.2",
     "node": ">14",
     "pug": "^3.0.2"
