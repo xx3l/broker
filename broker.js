@@ -159,7 +159,7 @@ class BrokerClass {
                     priority: params.priority || 0,
                     created: Date.now(),
                     state: params.state || 'input',
-                    data: {...message}
+                    data: structuredClone(message)
                 }
                 this.messages.push(msg);
                 this.length = this.messages.length;
@@ -282,13 +282,9 @@ class BrokerClass {
                 const item = {
                     created: Date.now(),
                 }
-                if (typeof data == 'object') {
-                    item.data = {...data};
-                } else {
-                    item.data = data;
-                }
+                item.data = structuredClone(data);
 
-                this.data[key] = {...item};
+                this.data[key] = structuredClone(item);
                 this.size = Object.keys(this.data).length;
                 return item;
             }

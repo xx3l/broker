@@ -3,8 +3,8 @@ const broker = require('../broker');
 broker.configureHTTP().configureHTTPS({
     port: 8080,
     credentials: {
-        keyFile: 'examples/privkey.pem',
-        certFile: 'examples/cert.pem',
+        keyFile: 'privkey.pem',
+        certFile: 'cert.pem',
     }
 }).setDebugLevel(3);
 broker.clear();

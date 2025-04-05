@@ -1,15 +1,18 @@
+- version 1.0.4 (2025-04-06)
+    - deps update
+    - bug fix for queues ( treat {0: val1, 1: val2, ...} as arrays to keep it iterable )
+- version 1.0.3 (2023-10-10)
+    - Add cookie handler
+    - Add cookies to default prePushAction for Queue::attachInputWeb
+    - Add on-board HTTPS server support - broker.configureHTTPS()
+    - default URL for broker's WebUI moved to http[s]:/host/broker
+- version 1.0.2 (2023-10-02)
+    - Async/sync responseAction support fix
+- version 1.0.1 (2023-10-02)
+    - improved logging & debug levels for engine
 - version 1.0.0 (??)
     - first public release
     - Queue implementation
     - Cache implementation
     - Queue.attachInputWeb entrypoints implementation
     - examples set included
-- version 1.0.1 (2023-10-02)
-    - improved logging & debug levels for engine
-- version 1.0.2 (2023-10-02)
-    - Async/sync responseAction support fix
-- version 1.0.3 (2023-10-10)
-    - Add cookie handler
-    - Add cookies to default prePushAction for Queue::attachInputWeb
-    - Add on-board HTTPS server support - broker.configureHTTPS()
-    - default URL for broker's WebUI moved to http[s]:/host/broker
