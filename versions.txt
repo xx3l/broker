@@ -1,3 +1,7 @@
+- version 1.0.5 (2025-10-10)
+    - linted source (except examples)
+    - add external `express` instance attaching
+    - some debugging improvements (especially on DebugLevel = 3)
 - version 1.0.4 (2025-04-06)
     - deps update
     - bug fix for queues ( treat {0: val1, 1: val2, ...} as arrays to keep it iterable )
