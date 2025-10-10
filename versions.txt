@@ -1,3 +1,6 @@
+- version 1.0.6 (2025-10-10)
+    - add signal processing for attached broker instance
+    - add chaining for most methods
 - version 1.0.5 (2025-10-10)
     - linted source (except examples)
     - add external `express` instance attaching

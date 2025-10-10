@@ -65,7 +65,7 @@ class BrokerClass {
   }
 
   setDebugLevel (level) {
-    this.config.debug = level
+    this.config.debug = level || 0
     return this
   }
 
@@ -75,6 +75,7 @@ class BrokerClass {
     this.#queues = []
     this.cache = {}
     this.caches = []
+    return this
   }
 
   configureHTTP (config = { port: 3000 }) {
@@ -108,7 +109,7 @@ class BrokerClass {
     return this
   }
 
-  startHttp (mode = 'dev') {
+  attachProcHandler (mode = 'dev') {
     const signals = ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']
     if (mode !== 'dev') {
       signals.push('uncaughtException')
@@ -119,6 +120,10 @@ class BrokerClass {
         process.exit(-1)
       })
     })
+  }
+
+  startHttp (mode = 'dev') {
+    this.attachProcHandler(mode)
     this.start()
     if (this.#httpsServer) {
       this.debug(1, `[Info] HTTPS started at ::${this.httpsServerPort}`)
@@ -136,6 +141,8 @@ class BrokerClass {
   
   attachExpressApp (app) {
     this.#httpServer = app
+    this.attachProcHandler()
+    return this
   }
 
   createQueue (name) {

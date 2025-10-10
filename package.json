@@ -1,6 +1,6 @@
 {
-  "name": "broker",
-  "version": "1.0.5",
+  "name": "@webmakerz/broker",
+  "version": "1.0.6",
   "description": "Queue-based framework and app-layer integration proxy transport",
   "scripts": {
     "lint": "standard",
@@ -11,7 +11,10 @@
     "webroot/index.pug"
   ],
   "main": "broker.js",
-  "repository": "xx3l/broker",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xx3l/broker.git"
+  },
   "keywords": [],
   "author": "",
   "license": "Apachen 2.0",
